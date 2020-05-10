@@ -77,6 +77,8 @@ static YYSIZE_T zend_yytnamerr(char*, const char*);
 %left '*' '/' '%'
 %precedence '!'
 %precedence T_INSTANCEOF
+%precedence T_AS
+%precedence T_IS
 %precedence '~' T_INT_CAST T_DOUBLE_CAST T_STRING_CAST T_ARRAY_CAST T_OBJECT_CAST T_BOOL_CAST T_UNSET_CAST '@'
 %right T_POW
 %precedence T_CLONE
@@ -159,6 +161,7 @@ static YYSIZE_T zend_yytnamerr(char*, const char*);
 %token T_DECLARE    "declare (T_DECLARE)"
 %token T_ENDDECLARE "enddeclare (T_ENDDECLARE)"
 %token T_AS         "as (T_AS)"
+%token T_IS         "is (T_IS)"
 %token T_SWITCH     "switch (T_SWITCH)"
 %token T_ENDSWITCH  "endswitch (T_ENDSWITCH)"
 %token T_CASE       "case (T_CASE)"
@@ -258,6 +261,7 @@ static YYSIZE_T zend_yytnamerr(char*, const char*);
 %type <ast> isset_variable type return_type type_expr type_without_static
 %type <ast> identifier type_expr_without_static union_type_without_static
 %type <ast> inline_function union_type
+%type <ast> as_is_expr_type
 
 %type <num> returns_ref function fn is_reference is_variadic variable_modifiers
 %type <num> method_modifiers non_empty_member_modifiers member_modifier
@@ -279,7 +283,7 @@ reserved_non_modifiers:
 	| T_THROW | T_USE | T_INSTEADOF | T_GLOBAL | T_VAR | T_UNSET | T_ISSET | T_EMPTY | T_CONTINUE | T_GOTO
 	| T_FUNCTION | T_CONST | T_RETURN | T_PRINT | T_YIELD | T_LIST | T_SWITCH | T_ENDSWITCH | T_CASE | T_DEFAULT | T_BREAK
 	| T_ARRAY | T_CALLABLE | T_EXTENDS | T_IMPLEMENTS | T_NAMESPACE | T_TRAIT | T_INTERFACE | T_CLASS
-	| T_CLASS_C | T_TRAIT_C | T_FUNC_C | T_METHOD_C | T_LINE | T_FILE | T_DIR | T_NS_C | T_FN
+	| T_CLASS_C | T_TRAIT_C | T_FUNC_C | T_METHOD_C | T_LINE | T_FILE | T_DIR | T_NS_C | T_FN | T_IS
 ;
 
 semi_reserved:
@@ -991,6 +995,10 @@ expr:
 			{ $$ = zend_ast_create_binary_op(ZEND_SPACESHIP, $1, $3); }
 	|	expr T_INSTANCEOF class_name_reference
 			{ $$ = zend_ast_create(ZEND_AST_INSTANCEOF, $1, $3); }
+	|	expr T_AS as_is_expr_type
+			{ $$ = zend_ast_create(ZEND_AST_AS, $1, $3); }
+	|	expr T_IS as_is_expr_type
+			{ $$ = zend_ast_create(ZEND_AST_IS, $1, $3); }
 	|	'(' expr ')' {
 			$$ = $2;
 			if ($$->kind == ZEND_AST_CONDITIONAL) $$->attr = ZEND_PARENTHESIZED_CONDITIONAL;
@@ -1037,6 +1045,12 @@ inline_function:
 				  zend_ast_create(ZEND_AST_RETURN, $11), $6);
 				  ((zend_ast_decl *) $$)->lex_pos = $10;
 				  CG(extra_fn_flags) = $9; }
+;
+
+as_is_expr_type:
+		type				{ $$ = $1; }
+	|	'?' type			{ $$ = $2; $$->attr |= ZEND_TYPE_NULLABLE; }
+	|	'(' union_type ')'	{ $$ = $2; }
 ;
 
 fn:
