@@ -8093,6 +8093,12 @@ void zend_compile_is(znode *result, zend_ast *ast) /* {{{ */
 }
 /* }}} */
 
+void zend_compile_is(znode *result, zend_ast *ast) /* {{{ */
+{
+    // TODO: implement this :)
+}
+/* }}} */
+
 void zend_compile_include_or_eval(znode *result, zend_ast *ast) /* {{{ */
 {
 	zend_ast *expr_ast = ast->child[0];
@@ -9010,9 +9016,12 @@ void zend_compile_expr(znode *result, zend_ast *ast) /* {{{ */
 		case ZEND_AST_ARROW_FUNC:
 			zend_compile_func_decl(result, ast, 0);
 			return;
-        case ZEND_AST_IS:
-            zend_compile_is(result, ast);
-            return;
+		case ZEND_AST_IS:
+			zend_compile_is(result, ast);
+			return;
+		case ZEND_AST_AS:
+			zend_compile_as(result, ast);
+			return;
 		case ZEND_AST_THROW:
 			zend_compile_throw(result, ast);
 			return;
